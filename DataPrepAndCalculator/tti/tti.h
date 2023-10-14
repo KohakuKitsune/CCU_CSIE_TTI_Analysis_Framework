@@ -4,47 +4,58 @@
 #include <fstream>
 #include <vector>
 
-#define VD_DATA "C:/Users/user/OneDrive/Desktop/CSIE_Project/Program/CSV/VD_data"
-#define TTI_DATA "C:/Users/user/OneDrive/Desktop/CSIE_Project/Program/CSV/TTI" 
+#define INPUT "C:/CSIE_Project/Program/DataPrepAndCalculator/tti/input.txt"
+#define VD_DATA "C:/CSIE_Project/Program/CSV/VD_data"
+#define TTI_DATA "C:/CSIE_Project/Program/CSV/TTI" 
 
-#define ONE_HOUR        1
-#define TWO_HOUR        2
-#define THREE_HOUR      3
-#define MANY_HOUR       4
+//Below is a data structure that holds the a hour's long vd data of a road segment.
+typedef struct hour_road_vd_block {
+    char* road_id;
+    int avg_speed;
+    int reg_vd;
+    float pcu_vd;   
+} dblock;
 
-#define HOURS_PER_DAY 24
-#define DAY_PER_MONTH 30
-#define MORNING     12
-#define EVENING     24
+//Below is a data structure that holds the a day's vd data of all road segments.
+typedef struct day_time_interval_route_vd_datablock {
+    char** segments; //stores all road segments in the current route.
+    char** filename; //storess the current vd_file of each road segment.
+    long* fpost;    //stores the last position read in each vd file of each road segment
+    char* start;     //starting date
+    char* end;       //ending date
+    int seg_cnt;
+    dblock** d_entry;
+} dchunk;
 
 using namespace std;
 
-
-
 class CalculateTTI {
-    private:
-        ifstream ifile;             //input file
-        ofstream ofile;             //output file
-        vector<string> road_id;     //Road ID
-        vector<string> date;        //Date of the Day
-        vector<float> avg_speed;    //Average Speed of the current time(h)
-        vector<int> TV;             //Traffic Volume of the current time(h)
-        vector<float> tti;          //Store the tti of the hour
-        int idx;                    //Store current time(h). Ex: idx = 1 means the first hour of the day       
-        int mode;                   //Define the peak period (1/2/3/more hour)
-        int dayCnt;                 //Store the total day of the current month
-        int ttiCnt;                 //Store the calculated tti count
+  private:
+    ifstream ifile;
+    ofstream ofile;
+    string input;
+    char* curr_route;   
+    char** route;   //stores all input routes
+    dchunk vd_daily;
+    int r_cnt;      //route count
 
-        //Private function
-        FindPeak_1();                               //Find the peak 1 hour
-        FindPeak_2();                               //Find the peak 2 hour
-        FindPeak_3();                               //Find the peak 3 hour
-        FindTTI(float speed, int tmp_f);            //Calculate TTI
-        WriteData();                                //Write Data into new file
-        PushData(string *data);
+    //Private function
+    char* GetWord(char* dest,char* src, char delim);  //Extract word from string
+    void InitRoute(int cnt);   //Initialize space to store route input
+    void InitDChunk();         //Initialize space to store data for TTI calculation of the current route.
+    void RetrieveData();       //Extract daily vd data of the route with given time interval.
+    void GetYearNMonth(int* year, int* month, char* date);  //Get year and month from given date.
+    void CalMonthTTI(int year, int month, int days);  //Calculation of TTI of the route in a given month.
 
-    public:
 
-        RunCalc(string filename);   //Main Function of Calculate TTI
+  public:
+    //Constructors
+    CalculateTTI();    //Default Constructor  
+
+    //Destructor
+    ~CalculateTTI();  //Destructs an object
+
+    //Public Member Function
+    void RunCalc();   //Main Function of Calculate TTI
 };
 #endif

@@ -1,231 +1,213 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <cstring>
+#include <locale>
 #include "tti.h"
 
 using namespace std;
 
-CalculateTTI::RunCalc(string filename)
+
+// Constuctors
+CalculateTTI::CalculateTTI() // Default Constructor
 {
-    /*=======File path checker=======*/
-    cout << "Input file: " << filename << endl;
-    string fileloc(VD_DATA);
-    cout << "File Pathname: " << fileloc << "/" << filename << endl;
+  curr_route = (char*) malloc(sizeof(char) * 1024); 
+  route = NULL;   
+  r_cnt  = 0;     
+}
 
-    ifile.open(fileloc + "/" + filename);
+// Destructor
+CalculateTTI::~CalculateTTI() // Destructs an object
+{
+  cout << endl;
+  cout << "successfully destroyed" << endl;
+}
 
-    /*=====Start Parsing the file=====*/
-    int lineCnt = 0;            //Calculate the total line cnt of the csv file (used to calculate the dayCnt of the month)
-    string line;
-    getline(ifile, line);       //skip the description header line
-    while(getline(ifile, line)){
-        istringstream templine;
-        templine.str(line);
-        string temp;
-        string data[HOURS_PER_DAY];
-        int col = 0;
+void CalculateTTI::RunCalc() // Main function of object Calculator
+{
+  //--------Recieve input from file-----------//
+  string fileloc(INPUT);
+  ifile.open(fileloc);
 
-        /*The Cleaned Data uses "," to seperate the data*/
-        while(getline(templine, temp, ',')){
+  getline(ifile,input);
+  r_cnt = stoi(input);
 
-            data[col] = temp;
-            col++;
-        }
+  InitRoute(r_cnt);
 
-        PushData(data);
-        lineCnt++;
+  //Reads input from file
+  for(int i = 0; i < r_cnt; i ++)
+  {
+    getline(ifile,input);
+    strcpy(*(route+i), input.c_str());
+  }
+  //----------------------------------------//
+  //-Begin to do calculation on each route-//
+  for(int i = 0; i < r_cnt; i ++)
+  {
+    curr_route = *(route+i);
+
+    vd_daily.seg_cnt = 0;
+    //Calculate how many road segments in the current route//
+    for(int j = 0; j < strlen(curr_route); j++)
+    {
+      if(*(curr_route+j) == 'V') vd_daily.seg_cnt ++;
     }
-    ifile.close();
+    //
+    //Extract road id of each road segment, starting date and ending date.//
+    InitDChunk();
+    char* temp  = (char*) malloc (sizeof(char) * 32);
+    char* pos = curr_route;
+    for(int j = 0; j < (vd_daily.seg_cnt+2); j++)
+    {
+      pos = GetWord(temp,pos,' ');
 
+      if(j < vd_daily.seg_cnt) strcpy(*(vd_daily.segments+j), temp);
 
+      else if(j < vd_daily.seg_cnt+1) strcpy(vd_daily.start, temp);
 
-    /*=====Identify the peak period(1/2/3/more hour)=====*/
-    cout << "Enter the mode you want for peak period" << endl;
-    cout << "1: ONE_HOUR\t2: TWO_HOUR\t3: THREE_HOUR\t4: MANY_HOUR" << endl;
-    cin >> mode;
-
-    //dayCnt = (lineCnt / 24) + 1;       //Calculate the number of day of that month
-    dayCnt = 10;
-
-    switch(mode){
-        idx = 0;
-        ttiCnt = 0;
-        /*=======Find the peak of the day (1 hour)=======*/
-        case ONE_HOUR:
-            FindPeak_1();
-            break;
-
-        /*=======Find the peak of the day (2 hour)=======*/
-        case TWO_HOUR:
-            FindPeak_2();
-            break;
-
-        /*=======Find the peak of the day (3 hour)=======*/
-        case THREE_HOUR:
-            FindPeak_3();
-            break;
-
-        /*=======Find the peak of the day (more hour)=======*/
-        case MANY_HOUR:
-            //FindPeak(filename, MANY_HOUR);
-            break;
-
-        default:
-            cout << "Invalid mode! Please insert the following number:" << endl;
-            cout << "1: ONE_HOUR\t2: TWO_HOUR\t3: THREE_HOUR\t4: MANY_HOUR" << endl;
-            cout << "Run again!" << endl;
-            exit(1);
+      else strcpy(vd_daily.end, temp);
+      
     }
+    //
+    /*
+    //Output all contents in dchunk//
+    for(int j = 0; j < vd_daily.seg_cnt; j++) cout << *(vd_daily.segments+j) << endl;
+    cout << "starting date" <<vd_daily.start << endl;
+    cout << "ending date" <<vd_daily.end << endl;    
+    */
+    //
+    //Begin to extract data with given route and time interval//
+    RetrieveData();
 
-    //Print out all TII values. (Remember add **date or other descriptions)
-    for(int i = 0; i < ttiCnt; i++) cout << date.at(0 + 24*i) << "\t" <<tti.at(i) << endl;
+  }  
+  //InitDChunk();
+
+}
+
+char* CalculateTTI::GetWord(char* dest,char* src, char delim)  
+{
+	
+  char* ptr=src;
+  char* qtr=dest;
+  while(*ptr&&isspace(*ptr)) ptr++;
+
+  while(*ptr&& (*(ptr) != delim))
+  {
+    if(qtr-dest>=8) break;
+    *qtr++=*ptr++;
+  }
+
+  *qtr='\0';
+
+  if(qtr-dest==0){
+    return NULL;
+  }
+
+  return ptr;
+}
+
+void CalculateTTI::InitRoute(int cnt)
+{
+  route = (char**) malloc (sizeof (char*) * cnt);
+  for(int i = 0; i < cnt; i++)
+    *(route+i) = (char*) malloc(sizeof(char)*1024);
+}
+
+void CalculateTTI::InitDChunk()
+{
+  vd_daily.segments = (char**) malloc(sizeof(char*) * (vd_daily.seg_cnt)); 
+  vd_daily.filename = (char**) malloc(sizeof(char*) * (vd_daily.seg_cnt));
+
+  for(int i = 0; i < vd_daily.seg_cnt; i++)
+  {
+    *(vd_daily.segments+i) = (char*) malloc(sizeof(char) * 8);
+    *(vd_daily.filename+i) = (char*) malloc(sizeof(char) * 8);
+  }
+
+  vd_daily.fpost = (long*) malloc(sizeof(long) * (vd_daily.seg_cnt));    
+  vd_daily.start = (char*) malloc(sizeof(char) * 8);     
+  vd_daily.end = (char*) malloc(sizeof(char) * 8);       
+
+  vd_daily.d_entry = (dblock**) malloc(sizeof(dblock*) * (24 *vd_daily.seg_cnt));
+  for(int i = 0; i < (24 * vd_daily.seg_cnt); i++)
+  {
+    *(vd_daily.d_entry+i) = (dblock*) malloc(sizeof(dblock));
+  }  
+
+}
+
+void CalculateTTI::RetrieveData()
+{
+    int start_y = 0;
+    int start_m = 0;
+    int end_y = 0;
+    int end_m = 0;
+    int loop_cnt = 0;
+
+    GetYearNMonth(&start_y, &start_m, vd_daily.start);
+    GetYearNMonth(&end_y, &end_m, vd_daily.end);
+
+    if(end_y > start_y) end_m = end_m + (12 * (end_y - start_y));
+
+    loop_cnt = end_m - start_m + 1;
+
+    int curr_y = start_y;
+    int curr_m = start_m;
+    int days = 0;
+    for(int i = 0; i < loop_cnt; i++)
+    {
+      if(curr_m == 2 )
+      {
+        if(curr_y % 4 == 0) days = 29;
+        else days = 28;
     
-    /*=======Write Data into a new file=======*/
-    //WriteData();
-}
+      }
+      else if(curr_m < 8 )
+      {
+        if(curr_m % 2 ==0) days = 30;
+        else days = 31;
 
-CalculateTTI::FindPeak_1()
-{
-    int tmp_p = 0, tmp_f = 0;       //tmp_p is to store the index of peak hour || tmp_f is to store the index of freeflow hour
-    int peak = TV.at(0);            //initial as the first traffic volume
-    int freeflow = TV.at(0);        //initial as the first traffic volume
+      }
+      else
+      {
+        if(curr_m % 2 ==0) days = 31;
+        else days = 30;
+      }
 
-    cout << "Mode 1 initiated" << endl;
-    
-    for(int j = 0; j < dayCnt; j++){
-        /*=====Find max traffic volume & it's average speed=====*/
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(peak < TV.at(i)){
-                peak = TV.at(i);
-                tmp_p = i;
-                //cout << "tmp_p: " <<tmp_p << endl;
-            }
+      CalMonthTTI(curr_y, curr_m, days);
 
-        }
+      curr_m++;
 
-        /*=====Find min traffic volume & it's average speed=====*/
-        freeflow = peak;
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(freeflow > TV.at(i) && avg_speed.at(i) != 0){
-                freeflow = TV.at(i);
-                tmp_f = i;
-                //cout << "tmp_f: " <<tmp_f << endl;
-            }
-        }
-
-        FindTTI(avg_speed.at(tmp_p), tmp_f);
-        idx = idx + HOURS_PER_DAY;      //Adjust the pointer to the next day 
+      if(curr_m > 12)
+      {
+        curr_m = 1;
+        curr_y++;
+      }
+      days = 0;
     }
+  
+
 }
 
-CalculateTTI::FindPeak_2()
+void CalculateTTI::GetYearNMonth(int* year, int* month, char* date)
 {
-    int tmp_p1 = 0, tmp_p2 = 0, tmp_f = 0;             
-    int peak = TV.at(0);
-    int freeflow = 1;        //not TV.at(0) because it might counter max/min = max/0 MATH ERROR
-    float average_speed;
+  char* d_pos = date;
+  char* s_year = (char*) malloc(sizeof(char) * 5);
+  char* s_month = (char*) malloc(sizeof(char) * 3);
 
-    for(int j = 0; j < dayCnt; j++){
+  d_pos = date;
+  d_pos = GetWord(s_year,d_pos,'/');
+  d_pos++;
+  d_pos = GetWord(s_month,d_pos,' ');
 
-        /*=====Find the 1st big traffic volume (TV)=====*/
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(peak < TV.at(i)){
-                peak = TV.at(i);
-                tmp_p1 = i;
-            }
-        }
+  *year = atoi(s_year);
+  *month = atoi(s_month);
 
-        freeflow = peak;
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(freeflow > TV.at(i) && avg_speed.at(i) != 0){
-                freeflow = TV.at(i);
-                tmp_f = i;
-                cout << "tmp_f: " <<tmp_f << endl;
-            }
-        }
-
-        /*=====Find the 2nd big traffic volume (TV)=====*/
-        peak = TV.at(0);        //refreshes the peak to find the second big traffiv volume (TV)
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(peak < TV.at(i) && peak != TV.at(tmp_p1)){
-                peak = TV.at(i);
-                tmp_p2 = i;
-            }
-        }
-
-        average_speed = (avg_speed.at(tmp_p1) + avg_speed.at(tmp_p2)) / TWO_HOUR;
-        //cout << "check check1" << endl;
-        FindTTI(average_speed, tmp_f);
-        //cout << "check check2" << endl;
-        idx = idx + HOURS_PER_DAY;      //current row
-    }
+  free(s_year);
+  free(s_month);
 }
 
-CalculateTTI::FindPeak_3()
+void CalculateTTI::CalMonthTTI(int year, int month, int days)
 {
-    int tmp_p1 = 0, tmp_p2 = 0, tmp_p3 = 0, tmp_f = 0;             
-    int peak = TV.at(0);
-    int freeflow = 1;        //not TV.at(0) because it might counter max/min = max/0 MATH ERROR
-    float average_speed;
-
-    for(int j = 0; j < dayCnt; j++){
-        /*=====Find the 1st big traffic volume (TV)=====*/
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(peak < TV.at(i)){
-                peak = TV.at(i);
-                tmp_p1 = i;
-            }
-        }
-
-        freeflow = peak;
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(freeflow > TV.at(i) && avg_speed.at(i) != 0){
-                freeflow = TV.at(i);
-                tmp_f = i;
-                cout << "tmp_f: " <<tmp_f << endl;
-            }
-        }
-
-        /*=====Find the 2nd big traffic volume (TV)=====*/
-        peak = TV.at(0);        //refreshes the peak to find the second big traffiv volume (TV)
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(peak < TV.at(i) && peak != TV.at(tmp_p1)){
-                peak = TV.at(i);
-                tmp_p2 = i;
-            }
-        }
-
-        /*=====Find the 3rd big traffic volume (TV)=====*/
-        peak = TV.at(0);        //refreshes the peak to find the second big traffiv volume (TV)
-        for(int i = idx; i < HOURS_PER_DAY + idx; i++){
-            if(peak < TV.at(i) && peak != TV.at(tmp_p1) && peak != TV.at(tmp_p2)){
-                peak = TV.at(i);
-                tmp_p3 = i;
-            }
-        }
-
-        average_speed = (avg_speed.at(tmp_p1) + avg_speed.at(tmp_p2) + avg_speed.at(tmp_p3)) / THREE_HOUR;
-
-        FindTTI(average_speed, tmp_f);
-        idx = idx + HOURS_PER_DAY;      //current row
-    }
-}
-
-CalculateTTI::FindTTI(float average_speed, int tmp_f)
-{
-    tti.push_back((avg_speed.at(tmp_f)/average_speed));         //TTI = FreeFlow speed / Current average speed
-    ttiCnt++;
-}
-
-CalculateTTI::WriteData()
-{
-    /*Create a file and write the calculated TTI into it*/
-}
-
-CalculateTTI::PushData(string *data)
-{
-    road_id.push_back(data[0]);
-    date.push_back(data[1]);
-    avg_speed.push_back(stof(data[2]));
-    TV.push_back(stoi(data[3]));
+  return;
 }
