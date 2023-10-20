@@ -130,7 +130,9 @@ bool Preprocessor::CheckAbnormal(int idx)
 
 void Preprocessor::Validate(string filename)
 {
-  cout << idx << endl;
+  //Show the number of entries in the current file
+  //cout << idx << endl;
+
   //Validate for any missing data (except zero value data)
   string fileloc(VALID_LOG);
 
@@ -266,7 +268,8 @@ void Preprocessor::Validate(string filename)
       abnorm_entry.push_back(tar_date);
       abnorm_idx.push_back(i);
       corrupt_val[i] += ABNORMAL;
-      cout << corrupt_val.at(i) << endl;
+      //Show corrupt value of the data in terminal
+      //cout << corrupt_val.at(i) << endl;
       x += 1;
     }
 
@@ -366,15 +369,17 @@ void Preprocessor::Validate(string filename)
   start_date.clear();
   end_date.clear();
   length.clear();
-  
 
+  //Show valiadated data in terminal
+  /*
   cout << idx << endl;
   for (int i = 0; i < idx; i++)
   {
     cout << road_id.at(i) << "," << date.at(i) << ","
          << avg_speed.at(i) << "," << reg_vd.at(i) << "," 
          << pcu_vd.at(i) << "," << corrupt_val.at(i) << endl;
-  }
+  } 
+  */
 
   mfile << "\nFile \""<<filename 
   << "\" validation completed\n\n----------------------------------------------------------------------\n";
@@ -408,8 +413,7 @@ void Preprocessor::WriteData()
 
   ofile.open(fileloc + "/" + filename + ".csv");
 
-  ofile << "road_id,dateWtime,incomplete,avgSpeed,trafficVolume,trafficVolume(pcu),corrupt_value" << "\n";
-    
+  ofile << "Road ID,Date and Time,Average Speed (km\\h),Traffic Volume,Traffic volume (Passenger Car Unit),Data Corrupt Value" << "\n";
   for(int i = 0; i < idx; ++i)
   {
     ofile << road_id.at(i) << "," << date.at(i) << "," << avg_speed.at(i) << "," 

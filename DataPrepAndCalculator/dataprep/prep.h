@@ -4,9 +4,9 @@
 #include <fstream>
 #include <vector>
 
-#define RAW_DATA "C:/Users/user/OneDrive/Desktop/CSIE_Project/Program/CSV/Raw_data"
-#define VD_DATA "C:/Users/user/OneDrive/Desktop/CSIE_Project/Program/CSV/VD_data"
-#define VALID_LOG "C:/Users/user/OneDrive/Desktop/CSIE_Project/Program/CSV/Validate_Log"
+#define RAW_DATA "C:/CSIE_Project/Program/CSV/Raw_data"
+#define VD_DATA "C:/CSIE_Project/Program/CSV/VD_data"
+#define VALID_LOG "C:/CSIE_Project/Program/CSV/Validate_Log"
 
 #define RAW_COlNUM 12
 
