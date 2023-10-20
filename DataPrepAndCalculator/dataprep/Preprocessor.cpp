@@ -413,11 +413,11 @@ void Preprocessor::WriteData()
 
   ofile.open(fileloc + "/" + filename + ".csv");
 
-  ofile << "Road ID,Date and Time,Average Speed (km\\h),Traffic Volume,Traffic volume (Passenger Car Unit),Data Corrupt Value" << "\n";
+  ofile << "Road ID,Date and Time,Average Speed (km\\h),Traffic Volume" << "\n";
   for(int i = 0; i < idx; ++i)
   {
     ofile << road_id.at(i) << "," << date.at(i) << "," << avg_speed.at(i) << "," 
-          << reg_vd.at(i) << "," << pcu_vd.at(i) << "," << corrupt_val.at(i) << endl;
+          << reg_vd.at(i) << endl;
   }
 
   ofile.close();
