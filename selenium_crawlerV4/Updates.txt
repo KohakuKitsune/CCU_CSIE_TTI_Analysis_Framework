@@ -1,4 +1,0 @@
-Updates on selenium_crawlerV4:
-01/06/2023:Added Customized settings on chromedriver, enabling to set dowload directory.
-
-
