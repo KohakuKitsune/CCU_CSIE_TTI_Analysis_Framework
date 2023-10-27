@@ -24,7 +24,7 @@ m2=word_list[3]
 
 #Cutomize settings for chrome driver to set download directory
 chromeOptions = webdriver.ChromeOptions()
-prefs = {"download.default_directory" : "C:\\CSIE_Project\\Program\\CSV\\Raw_data"}
+prefs = {"download.default_directory" : "C:\\CSIE_Project\\Program\\CSV\\Open_Source_Data"}
 chromeOptions.add_experimental_option("prefs", prefs)
 chromedriver = "C:\\CSIE_Project\\Program\\selenium_crawlerV4\\chromedriver-win64\\chromedriver.exe"
 driver = webdriver.Chrome(executable_path=chromedriver, options=chromeOptions)

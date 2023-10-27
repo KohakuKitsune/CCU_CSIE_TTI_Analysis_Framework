@@ -20,9 +20,7 @@ Preprocessor::~Preprocessor() // Destructs an object
 
 void Preprocessor::Preprocess(string file_name) // Main function of object Preprocewssor
 {
-  cout << "Input file: " << file_name << endl;
   string directory_path(OPEN_SOURCE_DATA_DIRECTORY_PATH);
-  cout << "File Pathname: " << directory_path << "/" << file_name << endl;
 
   ifile.open(directory_path + "/" + file_name);
 
@@ -216,7 +214,6 @@ void Preprocessor::ValidateData(string open_data_file_name)
     else
     {
       vfile << error_count <<".Entry on " << tar_date << " missing." << endl;
-      road_id.push_back(road_id.at(0));
       date.push_back(tar_date);
       average_speed.push_back(0);
       traffic_volume.push_back(0);
@@ -244,8 +241,6 @@ void Preprocessor::ValidateData(string open_data_file_name)
       abnorm_entry.push_back(tar_date);
       abnorm_idx.push_back(i);
       data_corrupt_value[i] += ABNORMAL;
-      //Show corrupt value of the data in terminal
-      //cout << corrupt_val.at(i) << endl;
       number_of_abnormal_entries += 1;
     }
 
@@ -390,10 +385,8 @@ void Preprocessor::WriteData()
   month = date_for_current_file.substr(0, pos);
   
   string output_file_name(road_id + "_" + year + "_" + month);
-  cout << "Current file: " << output_file_name << endl;
+  cout << output_file_name << endl;
   string output_file_directory_path(PREPROCESSED_DATA_DIRECTORY_PATH);
-  cout << "File Pathname: " << output_file_directory_path << "/" << output_file_name << ".csv" << endl;
-
 
   ofile.open(output_file_directory_path + "/" + output_file_name + ".csv");
 
