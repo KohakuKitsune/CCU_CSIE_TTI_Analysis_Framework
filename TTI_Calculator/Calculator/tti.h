@@ -4,25 +4,26 @@
 #include <fstream>
 #include <vector>
 
-#define INPUT_FILE_PATH "C:/CSIE_Project/Program/DataPrepAndCalculator/tti/input.txt"
-#define PREPROCESSED_DATA_DIRECTORY_PATH "C:/CSIE_Project/Program/CSV/Traffic_Volume_Data"
+#define INPUT_FILE_PATH "C:/CSIE_Project/Program/TTI_Calculator/input.txt"
+#define TRAFFIC_VOLUME_DATA_DIRECTORY_PATH "C:/CSIE_Project/Program/CSV/Traffic_Volume_Data"
 #define TIME_TRAVEL_INDEX_DATA_DIRECTORY_PATH "C:/CSIE_Project/Program/CSV/Time_Travel_Index_Data" 
+#define ROAD_SEGMENT_NAME_FILE_PATH "C:/CSIE_Project/Program/CSV/Road_Segment_Information/Road_Segement_Name.csv"
+#define ROAD_SEGMENT_LENGTH_FILE_PATH "C:/CSIE_Project/Program/CSV/Road_Segment_Information/Road_Segement_Length.csv"
+
+#define HOURS_IN_A_DAY 24
+#define NUMBER_OF_FILE_HEADER_ROWS 2
+#define TRAFFIC_VOLUME_DATA_COLUMN_COUNT 3
+
+using namespace std;
 
 //Below is a data structure that holds the a hour's long vd data of a road segment.
 typedef struct hour_road_vd_block {
-    string road_segment_id;
-    string filename;
-    int average_speed;
-    int traffic_volume;
+  string road_segment_id;
+  string traffic_volume_file_name;
+  float road_segment_length;
+  int average_speed[HOURS_IN_A_DAY];
+  int traffic_volume[HOURS_IN_A_DAY];
 } ROAD_SEGMENT;
-
-//Below is a data structure that holds the a day's vd data of all road segments.
-typedef struct route_information {
-    char* starting_date;
-    char* ending_date;  
-    int road_segment_cnt;
-    ROAD_SEGMENT** road_segment_info;
-} ROUTE;
 
 using namespace std;
 
@@ -30,20 +31,27 @@ class Calculator{
   private:
     ifstream ifile;
     ofstream ofile;
-    string input;
-    char* current_route;   
-    char** routes;   //stores all input routes
-    ROUTE route_info;
-    int route_cnt;      //route count
+    char* starting_date;
+    char* ending_date;  
+    int road_segment_count;
+    float route_distance;
+    ROAD_SEGMENT** road_segment_info;
 
     //Private function
     char* GetWord(char* dest,char* src, char delim);  //Extract word from string
-    void InitRoute(int cnt);   //Initialize space to store route input
-    void InitDChunk();         //Initialize space to store data for TTI calculation of the current route.
-    void RetrieveData();       //Extract daily vd data of the route with given time interval.
+    void InitRoadSegmentInfo();          //Initialize space to store information of the road segment
+    void CreateOutputFile(int starting_year,int starting_month,int ending_year,int ending_month);
+    void CalculateRouteTTI();
+    void MonthIntervalCalculation(int current_year,int current_month,int number_of_days);
+    void RetrieveRoadSegmentData(int segment_id,int year,int month,int day);
     void GetYearNMonth(int* year, int* month, char* date);  //Get year and month from given date.
-    void CalMonthTTI(int year, int month, int days);  //Calculation of TTI of the route in a given month.
-
+    int GetTotalDaysInCurrentMonth(int year, int month);
+    string GetRoadSegmentName(string road_segment_id);
+    string GetCurrentDateEntry(int year, int month, int day);
+    float GetRoadSegmentLength(string road_segment_id);
+    float CalculateDailyTTI();
+    float GetFreeFlowTravelTIme(int segment_id);
+    float GetPeakTravelTIme(int segment_id);
 
   public:
     //Constructors
@@ -53,6 +61,6 @@ class Calculator{
     ~Calculator();  //Destructs an object
 
     //Public Member Function
-    void RunCalc();   //Main Function of Calculate TTI
+    void RunCalc(char* current_route);   //Main Function of Calculate TTI
 };
 #endif

@@ -11,9 +11,10 @@ using namespace std;
 // Constuctors
 Calculator::Calculator() // Default Constructor
 {
-  current_route = (char*) malloc(sizeof(char) * 1024); 
-  route = NULL;   
-  route_cnt  = 0;     
+  starting_date = (char*) malloc(sizeof(char) * 8);     
+  ending_date = (char*) malloc(sizeof(char) * 8); 
+  road_segment_count = 0;
+  route_distance = 0;
 }
 
 // Destructor
@@ -23,64 +24,187 @@ Calculator::~Calculator() // Destructs an object
   cout << "An Calculator Object successfully destroyed" << endl;
 }
 
-void Calculator::RunCalc() // Main function of object Calculator
+void Calculator::RunCalc(char* current_route) // Main function of object Calculator
 {
-  //--------Recieve input from file-----------//
-  string file_location(INPUT_FILE_PATH);
-  ifile.open(file_location);
-
-  getline(ifile,input);
-  route_cnt = stoi(input);
-
-  InitRoute(route_cnt);
-
-  //Reads input from file
-  for(int i = 0; i < route_cnt; i ++)
+  road_segment_count = 0;
+  route_distance = 0;
+  for(int i = 0; i < strlen(current_route); i++) 
   {
-    getline(ifile,input);
-    strcpy(*(routes+i), input.c_str());
+    if(*(current_route + i) == 'V') road_segment_count ++;
+  }  
+
+  InitRoadSegmentInfo();
+
+  char* word  = (char*) malloc (sizeof(char) * 32);
+  char* pos = current_route;
+  for(int i = 0; i < (road_segment_count+2); i++)
+  {
+    pos = GetWord(word,pos,' ');
+
+    if(i < road_segment_count)
+    {
+      (*(road_segment_info + i))->road_segment_id.assign(word);
+      (*(road_segment_info + i))->road_segment_length = GetRoadSegmentLength((*(road_segment_info + i))->road_segment_id);
+      route_distance = route_distance + (*(road_segment_info + i))->road_segment_length;
+    }
+    
+    else if(i < road_segment_count+1) strcpy(starting_date, word);
+
+    else strcpy(ending_date, word);  
   }
 
-  //-Begin to do calculation on each route-//
-  for(int i = 0; i < route_cnt; i ++)
+  CalculateRouteTTI();
+
+}
+
+
+void Calculator::InitRoadSegmentInfo()
+{
+  road_segment_info = (ROAD_SEGMENT**) malloc(sizeof(ROAD_SEGMENT*) * road_segment_count);
+
+  for(int i = 0; i < road_segment_count; i++)
   {
-    current_route = *(routes+i);
+    *(road_segment_info + i) = new ROAD_SEGMENT;
+    (*(road_segment_info + i))->road_segment_length = 0;
 
-    route_info.road_segment_cnt = 0;
-    for(int j = 0; j < strlen(current_route); j++)
+    for(int j  = 0 ; j < HOURS_IN_A_DAY; j++)
     {
-      if(*(current_route + j) == 'V') route_info.road_segment_cnt ++;
+      (*(road_segment_info + i))->average_speed[j] = 0;
+      (*(road_segment_info + i))->traffic_volume[j] = 0;
     }
-    //
-    //Extract road id of each road segment, starting date and ending date.//
-    InitDChunk();
-    char* temp  = (char*) malloc (sizeof(char) * 32);
-    char* pos = current_route;
-    for(int j = 0; j < (route_info.seg_cnt+2); j++)
+  }
+}
+
+void Calculator::CreateOutputFile(int starting_year,int starting_month,int ending_year,int ending_month)
+{
+  string first_road_segment = (*(road_segment_info + 0))->road_segment_id;
+  string last_road_segment = (*(road_segment_info + (road_segment_count-1)))->road_segment_id;
+
+  string starting_date_string(to_string(starting_year) + "-" + to_string(starting_month));
+  string ending_date_string(to_string(ending_year) + "-" + to_string(ending_month));
+
+  string output_file_name(first_road_segment + "-" + last_road_segment + "_(" + starting_date_string + "~" + ending_date_string + ")");
+
+  string output_file_directory_path(TIME_TRAVEL_INDEX_DATA_DIRECTORY_PATH);
+
+  ofile.open(output_file_directory_path + "/" + output_file_name + ".csv");
+
+  string first_road_segment_name = GetRoadSegmentName(first_road_segment);
+  string last_road_segment_name = GetRoadSegmentName(last_road_segment);
+
+  ofile << "Route Name:," << "(" << first_road_segment << ")" << first_road_segment_name 
+  << " ~ ("<< last_road_segment << ")" << last_road_segment_name <<"\n";
+
+  ofile << "Route Information:" << "\n";
+  ofile << "Road Segment ID,Road Segment Name" << "\n";
+
+  string road_segment_name;
+  for(int i = 0; i < road_segment_count; i++)
+  {
+    road_segment_name = GetRoadSegmentName((*(road_segment_info + i))->road_segment_id);
+    ofile << (*(road_segment_info + i))->road_segment_id << "," << road_segment_name << "\n";
+  }
+  ofile << "\n" << "Daily Travel Time Index:" << "\n";
+  ofile << "Date,TTI Value" << "\n";
+}
+
+
+void Calculator::CalculateRouteTTI()
+{
+  int starting_year = 0;
+  int starting_month = 0;
+  int ending_year = 0;
+  int ending_month = 0;
+  int loop_cnt = 0;
+
+  GetYearNMonth(&starting_year, &starting_month, starting_date);
+  GetYearNMonth(&ending_year, &ending_month, ending_date);
+
+  CreateOutputFile(starting_year,starting_month,ending_year,ending_month);
+
+  if(ending_year > starting_year) ending_month = ending_month + (12 * (ending_year - starting_year));
+
+  loop_cnt = ending_month - starting_month + 1;
+
+  int current_year = starting_year;
+  int current_month = starting_month;
+  int number_of_days = 0;
+  for(int i = 0; i < loop_cnt; i++)
+  {
+    number_of_days = GetTotalDaysInCurrentMonth(current_year,current_month);
+
+    MonthIntervalCalculation(current_year,current_month,number_of_days);
+    
+    current_month++;
+
+    if(current_month > 12)
     {
-      pos = GetWord(temp,pos,' ');
-
-      if(j < route_info.seg_cnt) strcpy(*(route_info.segments+j), temp);
-
-      else if(j < route_info.seg_cnt+1) strcpy(route_info.start, temp);
-
-      else strcpy(route_info.end, temp);
-      
+      current_month = 1;
+      current_year++;
     }
-    //
-    /*
-    //Output all contents in dchunk//
-    for(int j = 0; j < vd_daily.seg_cnt; j++) cout << *(vd_daily.segments+j) << endl;
-    cout << "starting date" <<vd_daily.start << endl;
-    cout << "ending date" <<vd_daily.end << endl;    
-    */
-    //
-    //Begin to extract data with given route and time interval//
-    RetrieveData();
+    number_of_days = 0;
+  }
+  ofile.close();
+}
 
-  }  
-  //InitDChunk();
+void Calculator::MonthIntervalCalculation(int current_year,int current_month,int number_of_days)
+{
+  string current_date;
+  float tti_value = 0;
+  for(int current_day = 0; current_day < number_of_days; current_day++)
+  {
+    current_date = GetCurrentDateEntry(current_year, current_month, current_day+1);
 
+    for(int current_segment_id = 0; current_segment_id < road_segment_count; current_segment_id++)
+    {
+      RetrieveRoadSegmentData(current_segment_id,current_year,current_month,current_day);
+    }
+    
+    tti_value = CalculateDailyTTI();
+
+    ofile << current_date << "," << tti_value << endl;
+
+  }
+}
+
+void Calculator::RetrieveRoadSegmentData(int segment_id,int year,int month,int day)
+{
+  string segment_name = (*(road_segment_info + segment_id))->road_segment_id;
+
+  string date;
+  if(month < 10) date = string( to_string(year) + "_0"  + to_string(month));
+  else  date = string( to_string(year) + "_" + to_string(month));  
+
+  string traffic_volume_file_name(segment_name+ "_" + date);
+  string segment_data_directory_path(TRAFFIC_VOLUME_DATA_DIRECTORY_PATH);
+
+  ifile.open(segment_data_directory_path + "/" + traffic_volume_file_name + ".csv");
+
+  int skip_entries = NUMBER_OF_FILE_HEADER_ROWS + (HOURS_IN_A_DAY * day);
+
+  string line;
+  string current_row_entry[TRAFFIC_VOLUME_DATA_COLUMN_COUNT];
+
+  // skip to the entry of the starting hour of the day
+  for(int i = 0; i < skip_entries; i++) getline(ifile, line);
+
+  for(int i = 0; i < HOURS_IN_A_DAY; i++)
+  {
+    getline(ifile, line);
+    istringstream entry_copy;
+    entry_copy.str(line);
+    string column_entry;
+    int parse_index = 0, column_index = 0;
+
+    getline(entry_copy, column_entry, ',');
+
+    getline(entry_copy, column_entry, ',');
+    (*(road_segment_info + segment_id))->average_speed[i] = stoi(column_entry);
+
+    getline(entry_copy, column_entry, ',');
+    (*(road_segment_info + segment_id))->traffic_volume[i] = stoi(column_entry);
+  }
+  ifile.close();
 }
 
 char* Calculator::GetWord(char* dest,char* src, char delim)  
@@ -105,108 +229,175 @@ char* Calculator::GetWord(char* dest,char* src, char delim)
   return ptr;
 }
 
-void Calculator::InitRoute(int cnt)
-{
-  routes = (char**) malloc (sizeof (char*) * cnt);
-  for(int i = 0; i < cnt; i++)
-    *(routes+i) = (char*) malloc(sizeof(char)*1024);
-}
-
-void Calculator::InitDChunk()
-{
-  route_info.segments = (char**) malloc(sizeof(char*) * (route_info.seg_cnt)); 
-  route_info.filename = (char**) malloc(sizeof(char*) * (route_info.seg_cnt));
-
-  for(int i = 0; i < route_info.seg_cnt; i++)
-  {
-    *(route_info.segments+i) = (char*) malloc(sizeof(char) * 8);
-    *(route_info.filename+i) = (char*) malloc(sizeof(char) * 8);
-  }
-
-  route_info.fpost = (long*) malloc(sizeof(long) * (vd_daily.seg_cnt));    
-  vd_daily.start = (char*) malloc(sizeof(char) * 8);     
-  vd_daily.end = (char*) malloc(sizeof(char) * 8);       
-
-  vd_daily.d_entry = (dblock**) malloc(sizeof(dblock*) * (24 *vd_daily.seg_cnt));
-  for(int i = 0; i < (24 * vd_daily.seg_cnt); i++)
-  {
-    *(vd_daily.d_entry+i) = (dblock*) malloc(sizeof(dblock));
-  }  
-
-}
-
-void Calculator::RetrieveData()
-{
-    int start_y = 0;
-    int start_m = 0;
-    int end_y = 0;
-    int end_m = 0;
-    int loop_cnt = 0;
-
-    GetYearNMonth(&start_y, &start_m, route_info.start);
-    GetYearNMonth(&end_y, &end_m, route_info.end);
-
-    if(end_y > start_y) end_m = end_m + (12 * (end_y - start_y));
-
-    loop_cnt = end_m - start_m + 1;
-
-    int curr_y = start_y;
-    int curr_m = start_m;
-    int days = 0;
-    for(int i = 0; i < loop_cnt; i++)
-    {
-      if(curr_m == 2 )
-      {
-        if(curr_y % 4 == 0) days = 29;
-        else days = 28;
-    
-      }
-      else if(curr_m < 8 )
-      {
-        if(curr_m % 2 ==0) days = 30;
-        else days = 31;
-
-      }
-      else
-      {
-        if(curr_m % 2 ==0) days = 31;
-        else days = 30;
-      }
-
-      CalMonthTTI(curr_y, curr_m, days);
-
-      curr_m++;
-
-      if(curr_m > 12)
-      {
-        curr_m = 1;
-        curr_y++;
-      }
-      days = 0;
-    }
-  
-
-}
-
 void Calculator::GetYearNMonth(int* year, int* month, char* date)
 {
-  char* d_pos = date;
-  char* s_year = (char*) malloc(sizeof(char) * 5);
-  char* s_month = (char*) malloc(sizeof(char) * 3);
+  char* ptr = date;
+  char* year_string = (char*) malloc(sizeof(char) * 5);
+  char* month_string = (char*) malloc(sizeof(char) * 3);
 
-  d_pos = date;
-  d_pos = GetWord(s_year,d_pos,'/');
-  d_pos++;
-  d_pos = GetWord(s_month,d_pos,' ');
+  ptr = date;
+  ptr = GetWord(year_string,ptr,'/');
+  ptr++;
+  ptr = GetWord(month_string,ptr,' ');
 
-  *year = atoi(s_year);
-  *month = atoi(s_month);
+  *year = atoi(year_string);
+  *month = atoi(month_string);
 
-  free(s_year);
-  free(s_month);
+  free(year_string);
+  free(month_string);
 }
 
-void Calculator::CalMonthTTI(int year, int month, int days)
+int Calculator::GetTotalDaysInCurrentMonth(int year, int month)
 {
-  return;
+  int days = 0;
+  if(month == 2 )
+  {
+    if(year % 4 == 0) days = 29;
+    else days = 28;
+  }
+  else if(month < 8 )
+  {
+    if(month % 2 ==0) days = 30;
+    else days = 31;
+
+  }
+  else
+  {
+    if(month % 2 ==0) days = 31;
+    else days = 30;
+  }
+
+  return days;
 }
+
+string Calculator::GetRoadSegmentName(string road_segment_id)
+{
+  ifstream info_file;
+  info_file.open(ROAD_SEGMENT_NAME_FILE_PATH);
+
+  // Begin Parsing the file
+  string line;
+  string road_segment_name;
+  getline(info_file, line); // skip header
+  while (getline(info_file, line))
+  {
+    istringstream entry_copy;
+    entry_copy.str(line);
+    string column_entry;
+
+    getline(entry_copy, column_entry, ',');
+    if(road_segment_id.compare(column_entry) == 0)
+    {
+      getline(entry_copy, column_entry, ',');
+      road_segment_name.assign(column_entry);
+    }
+  }
+  info_file.close();
+
+  return road_segment_name;
+}
+
+string Calculator::GetCurrentDateEntry(int year, int month, int day)
+{
+  string current_date_entry;
+  if(month < 10) current_date_entry = string( to_string(year) + "/0"  + to_string(month) + "/");
+  else  current_date_entry = string( to_string(year) + "/" + to_string(month) + "/");  
+
+  if(day < 10) current_date_entry.append("0" + to_string(day));
+  else current_date_entry.append(to_string(day));
+
+  return current_date_entry;
+}
+
+float Calculator::GetRoadSegmentLength(string road_segment_id)
+{
+  ifstream info_file;
+  info_file.open(ROAD_SEGMENT_LENGTH_FILE_PATH);
+
+  // Begin Parsing the file
+  string line;
+  float road_segment_length;
+  getline(info_file, line); // skip header
+  while (getline(info_file, line))
+  {
+    istringstream entry_copy;
+    entry_copy.str(line);
+    string column_entry;
+
+    getline(entry_copy, column_entry, ',');
+    if(road_segment_id.compare(column_entry) == 0)
+    {
+      getline(entry_copy, column_entry, ',');
+      road_segment_length = stof(column_entry);
+    }
+  }
+  info_file.close();
+
+  return road_segment_length;
+}
+
+float Calculator::CalculateDailyTTI()
+{
+  float tti_value = 0;
+  float route_peak_travel_time = 0;
+  float route_free_flow_travel_time = 0;
+  float route_peak_travel_speed = 0;
+  float route_free_flow_travel_speed = 0;
+
+  for(int i = 0; i < road_segment_count; i++)
+  {
+    route_free_flow_travel_time = route_free_flow_travel_time + GetFreeFlowTravelTIme(i);
+    route_peak_travel_time = route_free_flow_travel_time + GetPeakTravelTIme(i);
+  }
+
+  if(route_free_flow_travel_time == 0 || route_peak_travel_time == 0) return 0;
+
+  route_free_flow_travel_speed = (float) route_distance / route_free_flow_travel_time;
+  route_peak_travel_speed = (float) route_distance  / route_peak_travel_time;
+
+  tti_value = (float) route_free_flow_travel_speed / route_peak_travel_speed;
+
+  return tti_value;
+}
+
+float Calculator::GetFreeFlowTravelTIme(int segment_id)
+{
+  int freeflow_travel_speed = 0;
+  
+  for(int i = 0; i < HOURS_IN_A_DAY; i++)
+  {
+    if((*(road_segment_info + segment_id))->average_speed[i] > freeflow_travel_speed) freeflow_travel_speed = (*(road_segment_info + segment_id))->average_speed[i];
+  }
+  
+
+  if(freeflow_travel_speed == 0) return 0;
+  else return (float) ((*(road_segment_info + segment_id))->road_segment_length / freeflow_travel_speed);
+
+}
+
+float Calculator::GetPeakTravelTIme(int segment_id)
+{
+  int peak_traffic_volume = 0;
+  int peak_travel_speed = 0;
+  int index = 0;
+
+  for(int i = 0; i < HOURS_IN_A_DAY; i++)
+  {
+    if((*(road_segment_info + segment_id))->traffic_volume[i] > peak_traffic_volume)
+    { 
+      peak_traffic_volume = (*(road_segment_info + segment_id))->traffic_volume[i];
+      index = i;
+    }
+  }
+
+  if(peak_traffic_volume == 0) return 0;
+  else
+  {
+    peak_travel_speed = (*(road_segment_info + segment_id))->average_speed[index];
+
+    if(peak_travel_speed == 0) return 0;
+    else return (float) ((*(road_segment_info + segment_id))->road_segment_length / peak_travel_speed);
+  }
+}
+
+
