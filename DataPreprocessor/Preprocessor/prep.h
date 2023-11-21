@@ -38,7 +38,11 @@ class Preprocessor {
     string GetCurrentDateEntry(int year, int month, int day, int time);
     bool IsAbnormalEntry(int index);
     void ValidateData(string open_data_file_name);    //Validate wholeness of daily data
-    void WriteData();                  //Output Processed Data into File
+    void WriteData();                                 //Output Processed Data into File
+    void ScanFiles(string target_road_id,string target_roadname);   // Scans all traffic volume files of a road_segment.
+    void CheckFiles(string target_road_id, string target_roadname, int year, int month); //Check if all traffic volume files of a road_segment exist.
+    void FillFile(string target_road_id, string target_roadname, int year, int month);   //Fill in missing files with files of default entry
+
 
     
   public: // public static class constants, for direction indicators
@@ -49,8 +53,9 @@ class Preprocessor {
     ~Preprocessor();  //Destructs an object
 
     //Public Member Function
-    void Preprocess(string file_name); //Begins Data Preprocessing (main func of object Preprocewssor)
-    //void Display();
+    void Preprocess(string current_road_id); //Begins Data Preprocessing (main func of object Preprocewssor)
+    void FillZeroFiles();                    //Fills missing traffic volume files with files with default entries.
 
 };
+
 #endif

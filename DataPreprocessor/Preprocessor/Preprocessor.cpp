@@ -1,6 +1,8 @@
 #include <iostream>
+#include <ctime>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
 #include "prep.h"
 
 using namespace std;
@@ -20,9 +22,7 @@ Preprocessor::~Preprocessor() // Destructs an object
 
 void Preprocessor::Preprocess(string file_name) // Main function of object Preprocewssor
 {
-  cout << "Input file: " << file_name << endl;
   string directory_path(OPEN_SOURCE_DATA_DIRECTORY_PATH);
-  cout << "File Pathname: " << directory_path << "/" << file_name << endl;
 
   ifile.open(directory_path + "/" + file_name);
 
@@ -30,6 +30,13 @@ void Preprocessor::Preprocess(string file_name) // Main function of object Prepr
   string line;
   string current_row_entry[OPEN_SOURCE_DATA_COLUMN_COUNT];
   getline(ifile, line); // skip header
+  cout << line.size() << endl;
+  if(line.empty())
+  { 
+    ifile.close();
+    return;
+  }
+
   while (getline(ifile, line))
   {
     istringstream entry_copy;
@@ -216,7 +223,6 @@ void Preprocessor::ValidateData(string open_data_file_name)
     else
     {
       vfile << error_count <<".Entry on " << tar_date << " missing." << endl;
-      road_id.push_back(road_id.at(0));
       date.push_back(tar_date);
       average_speed.push_back(0);
       traffic_volume.push_back(0);
@@ -244,8 +250,6 @@ void Preprocessor::ValidateData(string open_data_file_name)
       abnorm_entry.push_back(tar_date);
       abnorm_idx.push_back(i);
       data_corrupt_value[i] += ABNORMAL;
-      //Show corrupt value of the data in terminal
-      //cout << corrupt_val.at(i) << endl;
       number_of_abnormal_entries += 1;
     }
 
@@ -390,10 +394,8 @@ void Preprocessor::WriteData()
   month = date_for_current_file.substr(0, pos);
   
   string output_file_name(road_id + "_" + year + "_" + month);
-  cout << "Current file: " << output_file_name << endl;
+  cout << output_file_name << endl;
   string output_file_directory_path(PREPROCESSED_DATA_DIRECTORY_PATH);
-  cout << "File Pathname: " << output_file_directory_path << "/" << output_file_name << ".csv" << endl;
-
 
   ofile.open(output_file_directory_path + "/" + output_file_name + ".csv");
 
@@ -406,5 +408,121 @@ void Preprocessor::WriteData()
   }
 
   ofile.close();
+
+}
+
+void Preprocessor::FillZeroFiles()
+{
+  ifile.open(ROAD_SEGMENT_INFORMATION_FILE_PATH);
+
+  // Begin Parsing the file
+  string line;
+  getline(ifile, line); // skip header
+  while (getline(ifile, line))
+  {
+    istringstream entry_copy;
+    entry_copy.str(line);
+    string column_entry;
+
+    getline(entry_copy, column_entry, ',');
+    string target_road_id(column_entry);
+    getline(entry_copy, column_entry, ',');
+    string target_roadname(column_entry);
+    ScanFiles(target_road_id,target_roadname);
+  }
+  ifile.close();
+
+}
+
+void Preprocessor::ScanFiles(string target_road_id,string target_roadname)
+{
+  time_t local_time = time(NULL);
+  struct tm * local_date = localtime(&local_time);
+  int start_year = 2020;
+  int end_year = local_date->tm_year+1900;
+  int end_month = local_date->tm_mon;
+  string target_filename;
+
+  for(int i = start_year; i <= end_year; i++)
+  {
+    if(i == end_year) CheckFiles(target_road_id, target_roadname, i, end_month);
+    else CheckFiles(target_road_id, target_roadname, i, 12);
+  }
+}
+
+void Preprocessor::CheckFiles(string target_road_id, string target_roadname, int year, int month)
+{ 
+  string target_filename;
+  string output_file_directory_path(PREPROCESSED_DATA_DIRECTORY_PATH);
+
+  for(int i = 1; i <= month; i++)
+  {
+    if(i < 10) target_filename.assign(target_road_id + "_" + to_string(year) + "_0" + to_string(i));
+    else target_filename.assign(target_road_id + "_" + to_string(year) + "_" + to_string(i));
+    cout << target_filename << endl;
+
+    string target_path(output_file_directory_path + "/" + target_filename + ".csv");
+
+    struct stat info;
+ 
+    if (stat(target_path.c_str(), &info) == 0) 
+    {
+      cout<< "success" << endl;
+    }
+    else
+    {
+      cout<< "fail" << endl;
+      ofile.open(target_path);
+      FillFile(target_road_id,  target_roadname, year, i);
+      ofile.close();
+    } 
+
+  }
+
+}
+
+void Preprocessor::FillFile(string target_road_id, string target_roadname, int year, int month)
+{
+  int number_of_days = 0;
+  int expected_number_of_entries = 0;
+
+  //Determine the suppose ammount of entries in the file
+  if(month == 2)
+  {
+    if(year % 4 == 0)
+    {
+      number_of_days = 29;
+      expected_number_of_entries = number_of_days * NUMBER_OF_HOURS_IN_A_DAY; //Leap Year February
+    }
+    else 
+    {
+      number_of_days = 28;
+      expected_number_of_entries = number_of_days * NUMBER_OF_HOURS_IN_A_DAY;
+    }
+  }
+  else if(month == 4 || month == 6 || month == 9 || month == 11)
+  {
+    number_of_days = 30;
+    expected_number_of_entries = number_of_days * NUMBER_OF_HOURS_IN_A_DAY;
+  }
+  else
+  {
+    number_of_days = 31;
+    expected_number_of_entries = number_of_days * NUMBER_OF_HOURS_IN_A_DAY;
+  }
+
+  ofile << "Road Segment ID" << "," << target_road_id << ","  << "Road Segment Name" << "," << target_roadname <<"\n";
+  ofile << "Date and Time,Average Speed (km\\h),Traffic Volume" << "\n";
+
+  string current_date;
+  for(int i = 1; i <= number_of_days; i++)
+  {
+    for(int j = 0; j < 24; j++)
+    {
+      current_date = GetCurrentDateEntry(year, month, i, j);
+      ofile << current_date << ",0,0" <<endl;
+    }
+
+  }
 
 }
