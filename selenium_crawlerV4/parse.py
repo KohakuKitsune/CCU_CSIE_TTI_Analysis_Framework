@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 earliest_year=2020
 
-def parse(input_file_path='./selenium_crawlerV4/input.txt', road_number_file_path='./selenium_crawlerV4/road.txt'):
+def parse(input_file_path='C:\\CSIE_Project\\Program\\selenium_crawlerV4\\input.txt', road_number_file_path='C:\\CSIE_Project\\Program\\selenium_crawlerV4\\road.txt'):
     # 開參數檔案
     try:
         with open(input_file_path, 'r') as file:

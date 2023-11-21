@@ -17,7 +17,7 @@ int main()
     if(pdir->d_type == DT_REG) 
     {
       cout << pdir->d_name << endl;
-      //processor.Preprocess(pdir->d_name);
+      processor.Preprocess(pdir->d_name);
     }
   }
 

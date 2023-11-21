@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
-dir_path = 'C:\\Users\\bsbro\\workspace\\project\\test'
-save_path = 'C:\\Users\\bsbro\\workspace\\project\\graph'
+dir_path = 'C:\\CSIE_Project\\Program\\CSV\\Time_Travel_Index_Data\\Alternate'
+save_path = 'C:\\CSIE_Project\\Program\\GRAPH\\Alternate'
 
 # check directory
 if not os.path.isdir(dir_path):
@@ -16,7 +16,7 @@ if not os.path.isdir(dir_path):
 for filename in os.listdir(dir_path):
     if filename.endswith(".csv"):
         file_path = os.path.join(dir_path, filename)
-        df = pd.read_csv(file_path , skiprows=6)
+        df = pd.read_csv(file_path , skiprows=7)
         # transfer Date column into standard time format
         df['Date'] = pd.to_datetime(df['Date'])
         route_name = filename[0:15]

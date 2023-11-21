@@ -6,7 +6,8 @@
 
 #define INPUT_FILE_PATH "C:/CSIE_Project/Program/TTI_Calculator/input.txt"
 #define TRAFFIC_VOLUME_DATA_DIRECTORY_PATH "C:/CSIE_Project/Program/CSV/Traffic_Volume_Data"
-#define TIME_TRAVEL_INDEX_DATA_DIRECTORY_PATH "C:/CSIE_Project/Program/CSV/Time_Travel_Index_Data" 
+#define TIME_TRAVEL_INDEX_DATA_DIRECTORY_DEF_PATH "C:/CSIE_Project/Program/CSV/Time_Travel_Index_Data/Default" 
+#define TIME_TRAVEL_INDEX_DATA_DIRECTORY_ALT_PATH "C:/CSIE_Project/Program/CSV/Time_Travel_Index_Data/Alternate" 
 #define ROAD_SEGMENT_NAME_FILE_PATH "C:/CSIE_Project/Program/CSV/Road_Segment_Information/Road_Segement_Name.csv"
 #define ROAD_SEGMENT_LENGTH_FILE_PATH "C:/CSIE_Project/Program/CSV/Road_Segment_Information/Road_Segement_Length.csv"
 
@@ -31,10 +32,16 @@ class Calculator{
   private:
     ifstream ifile;
     ofstream ofile;
+    ofstream altfile;
     char* starting_date;
-    char* ending_date;  
+    char* ending_date;
+    int* period_start;
+    int* period_end; 
     int road_segment_count;
+    int bus_peak_period_count;
     float route_distance;
+    float last_tti_value;
+    float last_alt_tti_value;
     ROAD_SEGMENT** road_segment_info;
 
     //Private function
@@ -43,15 +50,16 @@ class Calculator{
     void CreateOutputFile(int starting_year,int starting_month,int ending_year,int ending_month);
     void CalculateRouteTTI();
     void MonthIntervalCalculation(int current_year,int current_month,int number_of_days);
-    void RetrieveRoadSegmentData(int segment_id,int year,int month,int day);
+    int RetrieveRoadSegmentData(int segment_id,int year,int month,int day);
     void GetYearNMonth(int* year, int* month, char* date);  //Get year and month from given date.
     int GetTotalDaysInCurrentMonth(int year, int month);
     string GetRoadSegmentName(string road_segment_id);
     string GetCurrentDateEntry(int year, int month, int day);
-    float GetRoadSegmentLength(string road_segment_id);
-    float CalculateDailyTTI();
+    //float GetRoadSegmentLength(string road_segment_id);
+    float CalculateDailyTTI(int mode);
     float GetFreeFlowTravelTIme(int segment_id);
     float GetPeakTravelTIme(int segment_id);
+    float AltGetPeakTravelTIme(int segment_id);
 
   public:
     //Constructors

@@ -311,7 +311,7 @@ void Preprocessor::ValidateData(string open_data_file_name)
     else
     {
       in_zero_entry_series = false;
-      if(zero_entry_count > 1)
+      if(zero_entry_count > 0)
       {
         start_date.push_back(start_tmp);
         end_date.push_back(end_tmp);
@@ -401,10 +401,10 @@ void Preprocessor::WriteData()
 
   ofile << "Road Segment ID" << "," << road_id << ","  << "Road Segment Name" << "," << road_segment_name <<"\n";
 
-  ofile << "Date and Time,Average Speed (km\\h),Traffic Volume" << "\n";
+  ofile << "Date and Time,Average Speed (km\\h),Traffic Volume,Missing Value" << "\n";
   for(int i = 0; i < processed_entry_count; ++i)
   {
-    ofile << date.at(i) << "," << average_speed.at(i) << "," << traffic_volume.at(i) <<endl;
+    ofile << date.at(i) << "," << average_speed.at(i) << "," << traffic_volume.at(i) << "," << data_corrupt_value.at(i) <<endl;
   }
 
   ofile.close();
@@ -512,7 +512,7 @@ void Preprocessor::FillFile(string target_road_id, string target_roadname, int y
   }
 
   ofile << "Road Segment ID" << "," << target_road_id << ","  << "Road Segment Name" << "," << target_roadname <<"\n";
-  ofile << "Date and Time,Average Speed (km\\h),Traffic Volume" << "\n";
+  ofile << "Date and Time,Average Speed (km\\h),Traffic Volume,Missing Value" << "\n";
 
   string current_date;
   for(int i = 1; i <= number_of_days; i++)
@@ -520,7 +520,7 @@ void Preprocessor::FillFile(string target_road_id, string target_roadname, int y
     for(int j = 0; j < 24; j++)
     {
       current_date = GetCurrentDateEntry(year, month, i, j);
-      ofile << current_date << ",0,0" <<endl;
+      ofile << current_date << ",0,0,4" <<endl;
     }
 
   }
