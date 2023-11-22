@@ -3,9 +3,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
+def line_cnt_before_blank(file_path): # count the line numbers before blank
+    with open(file_path, 'r', encoding='utf-8') as f: # read all line into lines
+        lines = f.readlines()
 
-dir_path = 'C:\\CSIE_Project\\Program\\CSV\\Time_Travel_Index_Data\\Alternate'
-save_path = 'C:\\CSIE_Project\\Program\\GRAPH\\Alternate'
+    line_cnt = 0
+    for line in lines:
+        if line.strip() == '' or line.strip() == ',': # if blank
+            break
+        line_cnt = line_cnt + 1
+    return line_cnt + 2
+
+dir_path = 'C:\\Users\\bsbro\\workspace\\project\\test'
+save_path = 'C:\\Users\\bsbro\\workspace\\project\\graph'
 
 # check directory
 if not os.path.isdir(dir_path):
@@ -16,11 +26,12 @@ if not os.path.isdir(dir_path):
 for filename in os.listdir(dir_path):
     if filename.endswith(".csv"):
         file_path = os.path.join(dir_path, filename)
-        df = pd.read_csv(file_path , skiprows=7)
+        df = pd.read_csv(file_path , skiprows=line_cnt_before_blank(file_path))
         # transfer Date column into standard time format
         df['Date'] = pd.to_datetime(df['Date'])
         route_name = filename[0:15]
-
+        
+        print(f'TTI Graph of {route_name} is plotting ...')
         # Group data by month then plot
         for name, group in df.groupby(df['Date'].dt.to_period('M')):
             plt.figure(figsize=(12, 6))
@@ -40,7 +51,7 @@ for filename in os.listdir(dir_path):
                 os.makedirs(os.path.join(save_path, route_name))
             plt.savefig(os.path.join(save_path, route_name, f'{route_name}_({name}).png'))
             # clear the graph for next one
-            plt.clf()
+            plt.close()
 
 
 
