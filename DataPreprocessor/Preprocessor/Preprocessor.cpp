@@ -301,6 +301,27 @@ void Preprocessor::ValidateData(string open_data_file_name)
         in_zero_entry_series = true;
         begin = i;
       }
+      else if(i == expected_number_of_entries-1)
+      {
+        end_tmp = GetCurrentDateEntry(year,month,day,hour);
+        zero_entry_count += 1;
+        last = i; 
+        in_zero_entry_series = false;
+        if(zero_entry_count > 0)
+        {
+          start_date.push_back(start_tmp);
+          end_date.push_back(end_tmp);
+          length.push_back(zero_entry_count);
+          for(int j = begin; j <= last; j++)
+          {
+            data_corrupt_value[j] += ZERO_SERIES;
+          }
+          number_of_zero_entry_series += 1;
+          zero_entry_count = 0;
+          begin = 0;
+          last = 0;
+        }
+      }
       else
       {
         end_tmp = GetCurrentDateEntry(year,month,day,hour);
