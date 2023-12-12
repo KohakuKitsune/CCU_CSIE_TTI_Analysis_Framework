@@ -6,14 +6,18 @@
 
 #define INPUT_FILE_PATH "C:/CSIE_Project/Program/TTI_Calculator/input.txt"
 #define TRAFFIC_VOLUME_DATA_DIRECTORY_PATH "C:/CSIE_Project/Program/CSV/Traffic_Volume_Data"
-#define TIME_TRAVEL_INDEX_DATA_DIRECTORY_DEF_PATH "C:/CSIE_Project/Program/CSV/Time_Travel_Index_Data/Default" 
-#define TIME_TRAVEL_INDEX_DATA_DIRECTORY_ALT_PATH "C:/CSIE_Project/Program/CSV/Time_Travel_Index_Data/Alternate" 
+#define TIME_TRAVEL_INDEX_DATA_DIRECTORY_PATH "C:/CSIE_Project/Program/CSV/Time_Travel_Index_Data" 
 #define ROAD_SEGMENT_NAME_FILE_PATH "C:/CSIE_Project/Program/CSV/Road_Segment_Information/Road_Segement_Name.csv"
-#define ROAD_SEGMENT_LENGTH_FILE_PATH "C:/CSIE_Project/Program/CSV/Road_Segment_Information/Road_Segement_Length.csv"
 
 #define HOURS_IN_A_DAY 24
 #define NUMBER_OF_FILE_HEADER_ROWS 2
 #define TRAFFIC_VOLUME_DATA_COLUMN_COUNT 3
+#define SPEED_LIMIT 50
+/*#define AM_START 7
+#define AM_END 10
+#define PM_START 16
+#define PM_END 20*/
+#define K_VALUE 3
 
 using namespace std;
 
@@ -32,16 +36,12 @@ class Calculator{
   private:
     ifstream ifile;
     ofstream ofile;
-    ofstream altfile;
     char* starting_date;
     char* ending_date;
-    int* period_start;
-    int* period_end; 
     int road_segment_count;
-    int bus_peak_period_count;
     float route_distance;
-    float last_tti_value;
-    float last_alt_tti_value;
+    float tti_value[6];
+    float last_tti_value[6];
     ROAD_SEGMENT** road_segment_info;
 
     //Private function
@@ -56,10 +56,14 @@ class Calculator{
     string GetRoadSegmentName(string road_segment_id);
     string GetCurrentDateEntry(int year, int month, int day);
     //float GetRoadSegmentLength(string road_segment_id);
-    float CalculateDailyTTI(int mode);
-    float GetFreeFlowTravelTIme(int segment_id);
-    float GetPeakTravelTIme(int segment_id);
-    float AltGetPeakTravelTIme(int segment_id);
+    void CalculateDailyTTI();
+    float GetFreeFlowTravelTime(int segment_id);
+    float AltGetFreeFlowTravelTime(int segment_id);
+    float GetPeakTravelTime(int segment_id);
+    void AltGetPeakTravelTime(int segment_id, float* travel_time);
+    float CalculateSharpness(int segment_id, int index);
+    float CalculateDistance (int segment_id, int start, int end);
+
 
   public:
     //Constructors
